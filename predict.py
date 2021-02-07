@@ -4,7 +4,8 @@ import torch
 from facenet_pytorch import MTCNN
 import torch.nn.functional as F
 from torchvision import transforms
-import os
+import os, argparse
+import pprint
 #local imports
 from consts import _class_names
 
@@ -63,15 +64,26 @@ def predict_emotion(img,model):
         draw.rectangle(boxes, outline=emotion_color)
         draw.rectangle((x-5,y-2.5,x+w+5,y+h+2.5), fill=emotion_color)
         draw.text((x,y), emotion_text, font=fnt, fill=(255,255,255))
-  
+
+def parse_model():
+    models_path = './models'
+    models = sorted(os.listdir(models_path))
+    for i,model in enumerate(models):
+        print(i, ': ',model)
+    model_index = int(input ("Pick one of these models.. (index)>> "))
+    assert model_index < len(models)
+    return models[model_index]
+
 if __name__ == '__main__':
+    model_name = parse_model()
+
     root_dir = 'test_images'
     output_dir = 'test_images/results'
     for img_name in os.listdir(root_dir):
         if img_name == 'results': continue
         img_path = os.path.join(root_dir, img_name)
         img = Image.open(img_path).convert('RGB')
-        model = load_model()
+        model = load_model(model_name)
         predict_emotion(img, model)
         result_img_name = 'output_'+img_name 
         output_path = os.path.join(output_dir, result_img_name)

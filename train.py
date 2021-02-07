@@ -12,7 +12,7 @@ from facenet_pytorch import MTCNN
 import torch.nn.functional as F
 import time
 #local imports
-from consts import _epochs, _dataset_png_path,_batch_size
+import consts
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 # Implementing the model
@@ -30,7 +30,7 @@ def model_init(num_classes):
 
 def data_load():
     # Creating the train/test dataloaders from images
-    root_data_dir = _dataset_png_path
+    root_data_dir = consts._dataset_png_path
     #transform the data
     transform = transforms.Compose([transforms.RandomResizedCrop(224),transforms.RandomHorizontalFlip(),transforms.ToTensor(),transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
     total_dataset = datasets.ImageFolder(root_data_dir, transform)
@@ -39,8 +39,8 @@ def data_load():
     test_size = len(total_dataset) - train_size
     train_dataset, test_dataset = torch.utils.data.random_split(total_dataset, [train_size, test_size])
 
-    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=_batch_size, shuffle=True, num_workers=4)
-    test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=_batch_size, shuffle=True, num_workers=4)
+    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=consts._batch_size, shuffle=True, num_workers=4)
+    test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=consts._batch_size, shuffle=True, num_workers=4)
 
     class_names = total_dataset.classes
     num_classes = len(class_names)
@@ -112,11 +112,11 @@ def test(model, class_names, test_dataloader, criterion):
         print(f'Accuracy of {class_names[i]} : {round(class_correct[i]/class_total[i], 4)}')
 
 
-def run():
+def run_train():
     train_dataloader, test_dataloader, num_classes,class_names = data_load()
     model, criterion, exp_lr_scheduler,optimizer = model_init(num_classes)
-    for epoch in range(_epochs):
-        print(f'=== EPOCH {epoch} / {_epochs} ===')
+    for epoch in range(consts._epochs):
+        print(f'=== EPOCH {epoch} / {consts._epochs} ===')
         train(model, criterion,train_dataloader, test_dataloader,optimizer)
         test(model, class_names, test_dataloader, criterion)
         exp_lr_scheduler.step()
@@ -127,7 +127,3 @@ def run():
     timestr = time.strftime("%Y%m%d-%H%M%S")
     model_path = './models/model_'+timestr+'.h5'
     torch.save(model, model_path)
-
-
-if __name__ == '__main__':
-    run()

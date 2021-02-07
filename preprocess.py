@@ -4,7 +4,7 @@ import os
 import pandas as pd 
 import numpy as np
 #local imports
-from consts import _dataset_path, _image_dim, _emotions, _dataset_png_path
+from consts import _dataset_path, _image_dim, _emotions, _dataset_png_path, _all_emotions
 
 
 
@@ -22,15 +22,16 @@ def convert_all_images_to_pngs(data_path = _dataset_path):
     #read raw pixels
     fer_raw_df = pd.read_csv(data_path)
     #truncate non used emotions
-    emotion_dict = _emotions
-    fer_raw_df = fer_raw_df.loc[fer_raw_df.emotion.isin([0,3,4,6])].reset_index(drop=True)
+    emotion_index = _emotions
+    emotion_dict = _all_emotions
+    fer_raw_df = fer_raw_df.loc[fer_raw_df.emotion.isin(emotion_index)].reset_index(drop=True)
     #create a placeholder
     root_data_dir = _dataset_png_path
     if(not os.path.isdir(root_data_dir)):
         os.mkdir(root_data_dir)
 
     fer_raw_length = len(fer_raw_df)
-    for index in range(fer_raw_length):
+    for index in range(10):
         if index % 1000 == 0:
             print(f'Progress: {index}/{fer_raw_length}')
         current_row = fer_raw_df.iloc[index]
@@ -46,5 +47,5 @@ def convert_all_images_to_pngs(data_path = _dataset_path):
         emotion_filename = f'{emotion_str}_{index}.png'
         img.save(os.path.join(emotion_path, emotion_filename))
 
-if __name__ == '__main__':
+def run_preprocess():
     convert_all_images_to_pngs()
