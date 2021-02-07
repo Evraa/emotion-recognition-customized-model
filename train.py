@@ -14,9 +14,9 @@ import time
 #local imports
 from consts import _epochs, _dataset_png_path,_batch_size
 
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 # Implementing the model
 def model_init(num_classes):
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     #read the model RESNET18
     model = models.resnet18(pretrained=True)
     num_features = model.fc.in_features
@@ -25,7 +25,7 @@ def model_init(num_classes):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
-    return model, criterion, exp_lr_scheduler
+    return model, criterion, exp_lr_scheduler, optimizer
 
 
 def data_load():
@@ -44,16 +44,81 @@ def data_load():
 
     class_names = total_dataset.classes
     num_classes = len(class_names)
-    return train_dataloader, test_dataloader, num_classes
+    return train_dataloader, test_dataloader, num_classes,class_names
+
+
+def train(model, criterion,train_dataloader, test_dataloader, optimizer):
+    print('=== TRAINING ===')
+    model.train()
+    counter = 0
+    acc_counter = 0
+    loss_counter = 0
+    batch_counter = 0
+    for inputs, labels in train_dataloader:
+        inputs, labels = inputs.to(device), labels.to(device)
+
+        optimizer.zero_grad()
+        outputs = model(inputs)
+
+        loss = criterion(outputs, labels)
+
+        preds = torch.argmax(outputs, 1)
+        acc = (preds == labels).sum().item()
+
+        acc_counter += acc
+        loss_counter += loss.item()
+        batch_counter += len(labels)
+        counter += 1
+
+        loss.backward()
+        optimizer.step()
+
+        if(counter % 100 == 0):
+            print(f'Accuracy: {round(acc_counter/batch_counter, 4)} \t Loss: {loss_counter/counter}')
+
+def test(model, class_names, test_dataloader, criterion):
+    print('=== VALIDATION ===')
+    model.eval()
+    acc_counter = 0
+    loss_counter = 0
+    batch_counter = 0
+    counter = 0
+    class_correct = [0 for i in range(len(class_names))]
+    class_total = [0 for i in range(len(class_names))]
+    with torch.no_grad():
+      for inputs, labels in test_dataloader:
+        inputs, labels = inputs.to(device), labels.to(device)
+
+        outputs = model(inputs)
+
+        loss = criterion(outputs, labels)
+
+        preds = torch.argmax(outputs, 1)
+        acc = (preds == labels).sum().item()
+        c = (preds == labels)
+
+        for i in range(len(labels)):
+            label = labels[i]
+            class_correct[label] += c[i].item()
+            class_total[label] += 1
+
+        acc_counter += acc
+        loss_counter += loss.item()
+        batch_counter += len(labels)
+        counter += 1
+
+    print(f'Accuracy: {round(acc_counter/batch_counter, 4)} \t Loss: {round(loss_counter/counter, 4)}')
+    for i in range(len(class_names)):
+        print(f'Accuracy of {class_names[i]} : {round(class_correct[i]/class_total[i], 4)}')
 
 
 def run():
-    train_dataloader, test_dataloader, num_classes = data_load()
-    model, criterion, exp_lr_scheduler = model_init(num_classes)
+    train_dataloader, test_dataloader, num_classes,class_names = data_load()
+    model, criterion, exp_lr_scheduler,optimizer = model_init(num_classes)
     for epoch in range(_epochs):
         print(f'=== EPOCH {epoch} / {_epochs} ===')
-        train()
-        test()
+        train(model, criterion,train_dataloader, test_dataloader,optimizer)
+        test(model, class_names, test_dataloader, criterion)
         exp_lr_scheduler.step()
     
     #save model
@@ -63,4 +128,6 @@ def run():
     model_path = './models/model_'+timestr+'.h5'
     torch.save(model, model_path)
 
-run()
+
+if __name__ == '__main__':
+    run()
