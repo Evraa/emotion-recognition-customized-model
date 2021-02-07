@@ -8,5 +8,9 @@ using fer2013 dataset at kaggle [link](https://www.kaggle.com/c/challenges-in-re
     pip install -r requirements
     download dataset, and place it at "./data/" then tar (unzip) it there.
 
+## prerequisite:
+1- python preprocess.py
+    To convert the csv file data pixels to png images.
+
 ## how to run:
     python main.py
